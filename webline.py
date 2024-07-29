@@ -15,10 +15,7 @@ import requests
 from requests.auth import HTTPDigestAuth
 import argparse
 
-try:
-    import httplib
-except ImportError:
-    import http.client as httplib
+logger = logging.getLogger(__name__)
 
 class WEBLINE:
 
@@ -41,8 +38,6 @@ class WEBLINE:
         self.port = port
 
     def turn_off(self):
-        httplib.HTTPConnection.debuglevel = 1
-
         logging.basicConfig(level=logging.INFO)
         url = f'http://{self.ip}/cgi/relaySt?Rel={self.port}'
         r = requests.get(url, auth=HTTPDigestAuth(self.user, self.password),
@@ -57,8 +52,6 @@ class WEBLINE:
             logging.error("Webline is already off")
 
     def turn_on(self):
-        httplib.HTTPConnection.debuglevel = 1
-
         logging.basicConfig(level=logging.INFO)
         url = f'http://{self.ip}/cgi/relaySt?Rel={self.port}'
         r = requests.get(url, auth=HTTPDigestAuth(self.user, self.password),

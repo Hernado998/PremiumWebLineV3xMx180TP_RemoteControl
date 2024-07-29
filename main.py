@@ -1,35 +1,44 @@
 # main.py
 import mx180tp
 import webline
+import energeniepm
 import datetime
 import logging
+import logging.config
 import os
 import signal
 
-# Initialize the flag globally
-flag = True
-
 def power_off():
-    logging.info("Powering off ...")
-    wl = webline.WEBLINE("10.152.4.143", "admin", "admin", 0)
-    wl.turn_off()
+    try :
+        logging.info("Powering off ...")
+        wl = webline.WEBLINE("10.152.4.143", "admin", "admin", 0)
+        eg = energeniepm.EGPM2("10.152.4.191")
+        wl.turn_off()
+        eg.turn_off_channel(3)
 
-    mx_154 = mx180tp.MX180TP("10.152.4.154", 9221)
-    mx_154.turn_off_channel(1)
-    mx_157 = mx180tp.MX180TP("10.152.4.157", 9221)
-    mx_157.turn_off_channel(1)
-    mx_157.turn_off_channel(2)
+        mx_154 = mx180tp.MX180TP("10.152.4.154", 9221)
+        mx_154.turn_off_channel(1)
+        mx_157 = mx180tp.MX180TP("10.152.4.157", 9221)
+        mx_157.turn_off_channel(1)
+        mx_157.turn_off_channel(2)
+    except Exception as e:
+        logging.error(f"Exception '{e}' while powering off")
 
 def power_on():
-    logging.info("Powering on ...")
-    wl = webline.WEBLINE("10.152.4.143", "admin", "admin", 0)
-    wl.turn_on()
+    try:
+        logging.info("Powering on ...")
+        wl = webline.WEBLINE("10.152.4.143", "admin", "admin", 0)
+        eg = energeniepm.EGPM2("10.152.4.191")
+        wl.turn_on()
+        eg.turn_on_channel(3)
 
-    mx_154 = mx180tp.MX180TP("10.152.4.154", 9221)
-    mx_154.turn_on_channel(1)
-    mx_157 = mx180tp.MX180TP("10.152.4.157", 9221)
-    mx_157.turn_on_channel(1)
-    mx_157.turn_on_channel(2)
+        mx_154 = mx180tp.MX180TP("10.152.4.154", 9221)
+        mx_154.turn_on_channel(1)
+        mx_157 = mx180tp.MX180TP("10.152.4.157", 9221)
+        mx_157.turn_on_channel(1)
+        mx_157.turn_on_channel(2)
+    except Exception as e:
+        logging.error(f"Exception '{e}' while powering on")
 
 def signal_handler(sig, frame):
     if sig == signal.SIGUSR1:
@@ -56,14 +65,37 @@ def main():
         os.makedirs(log_directory)
 
     # Configure the logging settings
-    logging.basicConfig(
-        level=logging.DEBUG,  # Set the logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        format="%(asctime)s - %(levelname)s - %(message)s",  # Define the format of log messages
-        handlers=[
-            logging.FileHandler(log_path),  # Save log messages to the specified file
-            logging.StreamHandler()  # Optionally, print log messages to the console
-        ]
-    )
+    logging_config = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'default': {
+                'format': '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            },
+        },
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'default',
+            },
+            'file': {
+                'class': 'logging.FileHandler',
+                'filename': log_path,
+                'formatter': 'default',
+            },
+        },
+        'root': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+        },
+    }
+
+    # Apply the logging configuration
+    logging.config.dictConfig(logging_config)
+
+    # Example usage of the logger in the main module
+    logger = logging.getLogger(__name__)
+    logger.info("Logging is configured and ready.")
 
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -78,7 +110,7 @@ def main():
             power_off()
             flag = False
 
-        if current_hour == 8 and current_minute == 30 and days[now.weekday()] in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] and flag == False:
+        if current_hour == 8 and current_minute == 0 and days[now.weekday()] in ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"] and flag == False:
             power_on()
             flag = True
 

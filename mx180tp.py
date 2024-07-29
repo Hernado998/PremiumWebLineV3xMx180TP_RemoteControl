@@ -1,9 +1,11 @@
 """Manage MX180TP"""
 
+import logging
 import argparse
 import socket
 import time
 
+logger = logging.getLogger(__name__)
 
 class MX180TP:
     """MX180TP class"""
@@ -20,6 +22,7 @@ class MX180TP:
         self.port = port
         self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.s.settimeout(3.0)
+
         if connect:
             self.connect()
 
@@ -28,6 +31,7 @@ class MX180TP:
         try:
             self.s.connect((self.ip, self.port))
         except Exception as e:
+            logging.error(f"Exception '{e}' while connecting to{self.ip}:{self.port}")
             raise Exception(f"Exception '{e}' while connecting to{self.ip}:{self.port}")
 
     def __send_req(self, cmd: str) -> str:
@@ -35,6 +39,7 @@ class MX180TP:
         try:
             data = self.s.recv(1024).decode()
         except Exception:
+            logging.error("Error: no data recv")
             return "Error: no data recv"
         return data.strip()
 
@@ -197,14 +202,14 @@ class MX180TP:
             channel (int): channel to be turned on [1,2,3].
         """
         if channel not in range(1, 4):
-            print(f"Channel {channel} not supported")
+            logging.error(f"Channel {channel} not supported")
             return
         for i in range(1, 5):
             if self.get_output_state(channel) == "1":
-                print(f"Channel {channel} turned on in {i} retries")
+                logging.info(f"{self.ip} Channel {channel} turned on in {i} retries")
                 return
             self.set_output_state(channel, True)
-        print(f"Error: could not turn on channel {channel} after {i} retries")
+        logging.error(f"{self.ip} Error: could not turn on channel {channel} after {i} retries")
 
     def turn_off_channel(self, channel: str) -> None:
         """Turns off a channel, verifying it is off or retrying up to 4 times.
@@ -213,14 +218,14 @@ class MX180TP:
             channel (int): channel to be turned off [1,2,3].
         """
         if channel not in range(1, 4):
-            print(f"Channel {channel} not supported")
+            logging.error(f"Channel {channel} not supported")
             return
         for i in range(1, 5):
             if self.get_output_state(channel) == "0":
-                print(f"Channel {channel} turned off in {i} retries")
+                logging.info(f"{self.ip} Channel {channel} turned off in {i} retries")
                 return
             self.set_output_state(channel, False)
-        print(f"Error: could not turn off channel {channel} after {i} retries")
+        logging.error(f"{self.ip} Error: could not turn off channel {channel} after {i} retries")
 
     def show_data(self) -> str:
         """Returns a string describing device name, connection parameters and status, ready to be printed."""
